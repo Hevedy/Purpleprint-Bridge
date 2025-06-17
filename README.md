@@ -2,7 +2,9 @@
 
 **Purpleprint Bridge** is a Blender add-on designed to export scene object data into a format compatible with [Purpleprint Placer](https://github.com/Hevedy/Purpleprint-Core) and other Unreal Engine-based tools.
 
-This tool enables quick and structured transfer of level design data from Blender to Unreal Engine pipelines, making it ideal for prototyping, layout planning, and mass placement of entities in-game.
+This tool enables quick and structured transfer of level design data from Blender to Unreal Engine pipelines, making it ideal for prototyping, layout planning, and mass placement of entities in-game.  
+
+![Collections](docs/images/blenderExportCollections.png)  
 
 ---
 

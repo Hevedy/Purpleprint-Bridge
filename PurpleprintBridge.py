@@ -2,7 +2,7 @@ bl_info = {
     "name": "Purpleprint Bridge (Unreal)",
     "blender": (4, 0, 0),
     "category": "Object",
-    "version": (1, 1),
+    "version": (1, 2),
     "author": "Hevedy",
     "description": "Export entities visible to Unreal Engine CSV",
     "license": "GPL-3.0"
@@ -37,17 +37,19 @@ import bpy
 import csv
 import math
 import os
+from bpy.props import BoolProperty, StringProperty, CollectionProperty, PointerProperty, EnumProperty
+from bpy.types import PropertyGroup, UIList
 
-# Input to save the root
-def register_scene_props():
-    bpy.types.Scene.unreal_export_path = bpy.props.StringProperty(
-        name="CSV Export Path",
-        description="File path for exporting CSV",
-        subtype='FILE_PATH'
-    )
+class CollectionItem(PropertyGroup):
+    name: StringProperty()
+    use: BoolProperty(default=False)
 
-def unregister_scene_props():
-    del bpy.types.Scene.unreal_export_path
+class PurpleprintBridgePreferences(bpy.types.AddonPreferences):
+    bl_idname = __name__
+
+    def draw(self, context):
+        layout = self.layout
+        layout.label(text="Collection filter moved to main panel.")
 
 class EXPORT_OT_entity_csv_unreal(bpy.types.Operator):
     bl_idname = "export.entity_csv_unreal"
@@ -71,8 +73,9 @@ class EXPORT_OT_entity_csv_unreal(bpy.types.Operator):
             # Only export non hiden to render objects and non null
             if obj.hide_render:
                 return []
-
+            
             collected = []
+
             for child in obj.children:
                 collected += collect_objects(child)
 
@@ -80,6 +83,12 @@ class EXPORT_OT_entity_csv_unreal(bpy.types.Operator):
                 collected.append(obj)
 
             return collected
+
+        export_mode = context.scene.export_mode
+        allowed_collections = [item.name for item in context.scene.collection_filter if item.use]
+
+        def is_in_allowed_collection(obj):
+            return any(col.name in allowed_collections for col in obj.users_collection)
 
         # Get all valid objects and childs
         all_objects = []
@@ -90,7 +99,9 @@ class EXPORT_OT_entity_csv_unreal(bpy.types.Operator):
         for obj in all_objects:
             if obj.type == 'EMPTY' or obj.data is None:
                 continue  # skip empty
-
+            if export_mode == 'FILTERED' and not is_in_allowed_collection(obj):
+                continue
+            
             name = obj.name
             model_name = obj.data.name
             entity_type = f"{obj.type} ({model_name})"
@@ -130,27 +141,80 @@ class EXPORT_OT_entity_csv_unreal(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class EXPORT_OT_update_collection_list(bpy.types.Operator):
+    bl_idname = "export.update_collection_list"
+    bl_label = "Update Collection List"
+
+    def execute(self, context):
+        scene = context.scene
+        scene.collection_filter.clear()
+        for col in bpy.data.collections:
+            item = scene.collection_filter.add()
+            item.name = col.name
+            item.use = False
+        return {'FINISHED'}
+
 class EXPORT_PT_entity_csv_unreal_panel(bpy.types.Panel):
     bl_label = "Purpleprint Bridge (Unreal)"
     bl_idname = "EXPORT_PT_entity_csv_unreal_panel"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = 'Export Tools'
+    bl_category = 'Purpleprint Bridge'
 
     def draw(self, context):
         layout = self.layout
         scene = context.scene
 
-        layout.prop(scene, "unreal_export_path")
-        layout.operator("export.set_unreal_csv_path", icon='FILE_FOLDER')
+        layout.separator()
+
+        # Export Mode
+        row = layout.row(align=True)
+        row.prop(scene, "export_mode", expand=True)
+
+        if scene.export_mode == 'FILTERED':
+            # Update
+            layout.operator("export.update_collection_list", icon='FILE_REFRESH')
+
+            # Collections list
+            box = layout.box()
+            for item in scene.collection_filter:
+                row = box.row()
+                row.prop(item, "use", text=item.name, toggle=True)
+
         layout.separator()
         layout.operator("export.entity_csv_unreal", icon='EXPORT')
-
+        layout.separator()
+        layout.prop(scene, "unreal_export_path")
 
 classes = [
+    CollectionItem,
+    PurpleprintBridgePreferences,
     EXPORT_OT_entity_csv_unreal,
-    EXPORT_PT_entity_csv_unreal_panel
+    EXPORT_OT_update_collection_list,
+    EXPORT_PT_entity_csv_unreal_panel,
 ]
+
+def register_scene_props():
+    bpy.types.Scene.collection_filter = CollectionProperty(type=CollectionItem)
+    bpy.types.Scene.export_mode = EnumProperty(
+        name="Export Mode",
+        description="Choose export mode",
+        items=[
+            ('ALL', "Export All", "Export all visible objects"),
+            ('FILTERED', "Export By Collections", "Export only selected collections")
+        ],
+        default='ALL'
+    )
+    bpy.types.Scene.unreal_export_path = StringProperty(
+        name="CSV Export Path",
+        description="File path for exporting CSV",
+        subtype='FILE_PATH'
+    )
+
+def unregister_scene_props():
+    del bpy.types.Scene.unreal_export_path
+    del bpy.types.Scene.collection_filter
+    del bpy.types.Scene.export_mode
 
 def register():
     for cls in classes:

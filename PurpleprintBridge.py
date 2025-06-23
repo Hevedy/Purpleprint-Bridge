@@ -2,7 +2,7 @@ bl_info = {
     "name": "Purpleprint Bridge (Unreal)",
     "blender": (4, 0, 0),
     "category": "Object",
-    "version": (1, 4),
+    "version": (1, 0, 4),
     "author": "Hevedy",
     "description": "Export entities visible to Unreal Engine CSV",
     "license": "GPL-3.0"

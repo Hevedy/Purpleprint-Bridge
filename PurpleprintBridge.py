@@ -2,7 +2,7 @@ bl_info = {
     "name": "Purpleprint Bridge (Unreal)",
     "blender": (4, 0, 0),
     "category": "Object",
-    "version": (1, 2),
+    "version": (1, 4),
     "author": "Hevedy",
     "description": "Export entities visible to Unreal Engine CSV",
     "license": "GPL-3.0"
@@ -111,14 +111,18 @@ class EXPORT_OT_entity_csv_unreal(bpy.types.Operator):
             rot = mat.to_euler()
             scale = mat.to_scale()
 
+            # Apply Unreal unit scale (Blender units are in meters, Unreal uses centimeters)
+            loc_cm = loc * 100
+            scale_cm = scale * 100
+
             # Unreal format
-            location = f"(X={loc.x:.6f},Y={loc.y:.6f},Z={loc.z:.6f})"
+            location = f"(X={loc_cm.x:.6f},Y={loc_cm.y:.6f},Z={loc_cm.z:.6f})"
             # Convert radians to degrees, reorder rotation as Pitch(Y), Yaw(Z), Roll(X)
             pitch = math.degrees(rot.x)
             yaw = math.degrees(rot.z)
             roll = math.degrees(rot.y)
             rotation = f"(Pitch={pitch:.6f},Yaw={yaw:.6f},Roll={roll:.6f})"
-            scale_str = f"(X={scale.x:.6f},Y={scale.y:.6f},Z={scale.z:.6f})"
+            scale_str = f"(X={scale_cm.x:.6f},Y={scale_cm.y:.6f},Z={scale_cm.z:.6f})"
 
             row = [f"Row_{index}", name, entity_type, location, rotation, scale_str]
             rows.append(row)

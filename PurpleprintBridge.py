@@ -2,7 +2,7 @@ bl_info = {
     "name": "Purpleprint Bridge (Unreal)",
     "blender": (4, 0, 0),
     "category": "Object",
-    "version": (1, 0, 4),
+    "version": (1, 0, 5),
     "author": "Hevedy",
     "description": "Export entities visible to Unreal Engine CSV",
     "license": "GPL-3.0"
@@ -106,6 +106,8 @@ class EXPORT_OT_entity_csv_unreal(bpy.types.Operator):
             model_name = obj.data.name
             entity_type = f"{obj.type} ({model_name})"
 
+            entity_tags = "0"
+
             mat = obj.matrix_world
             loc = mat.to_translation()
             rot = mat.to_euler()
@@ -124,7 +126,7 @@ class EXPORT_OT_entity_csv_unreal(bpy.types.Operator):
             rotation = f"(Pitch={pitch:.6f},Yaw={yaw:.6f},Roll={roll:.6f})"
             scale_str = f"(X={scale_cm.x:.6f},Y={scale_cm.y:.6f},Z={scale_cm.z:.6f})"
 
-            row = [f"Row_{index}", name, entity_type, location, rotation, scale_str]
+            row = [f"Row_{index}", name, entity_type, entity_tags, location, rotation, scale_str]
             rows.append(row)
             index += 1
 
@@ -135,7 +137,7 @@ class EXPORT_OT_entity_csv_unreal(bpy.types.Operator):
         try:
             with open(path, mode='w', newline='', encoding='utf-8') as file:
                 writer = csv.writer(file, delimiter=',')
-                writer.writerow(["---", "Name", "Type", "Location", "Rotation", "Scale"])
+                writer.writerow(["---", "Name", "Type", "Tags", "Location", "Rotation", "Scale"])
                 writer.writerows(rows)
             self.report({'INFO'}, f"CSV exported: {path}")
         except Exception as e:

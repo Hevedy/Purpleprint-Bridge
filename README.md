@@ -23,7 +23,7 @@ This tool enables quick and structured transfer of level design data from Blende
 
 The exported `.csv` file follows Unreal-style formatting:
   ```csv
-  Row,"Name","Type","(X=0,Y=0,Z=0)","(Pitch=0,Yaw=0,Roll=0)","(X=1,Y=1,Z=1)"
+  Row,"Name","Type","Tags","(X=0,Y=0,Z=0)","(Pitch=0,Yaw=0,Roll=0)","(X=1,Y=1,Z=1)"
   ```
 
 ---

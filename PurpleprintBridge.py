@@ -1,13 +1,3 @@
-bl_info = {
-    "name": "Purpleprint Bridge (Unreal)",
-    "blender": (4, 0, 0),
-    "category": "Object",
-    "version": (1, 0, 5),
-    "author": "Hevedy",
-    "description": "Export entities visible to Unreal Engine CSV",
-    "license": "GPL-3.0"
-}
-
 # ===========================================================================
 # Purpleprint - Bridge (Blender/Unreal) by Hevedy <https://github.com/Hevedy>
 # Repo <https://github.com/Hevedy/Purpleprint-Bridge>
@@ -91,10 +81,15 @@ class EXPORT_OT_entity_csv_unreal(bpy.types.Operator):
             return any(col.name in allowed_collections for col in obj.users_collection)
 
         # Get all valid objects and childs
-        all_objects = []
-        for obj in context.scene.objects:
-            if obj.parent is None:
-                all_objects += collect_objects(obj)
+        # all_objects = []
+        # for obj in context.scene.objects:
+        #     if obj.parent is None:
+        #         all_objects += collect_objects(obj)
+
+        # Get all evaluated objects and instances (includes Array/Mirror/etc.)
+        depsgraph = context.evaluated_depsgraph_get()
+        # all_objects = [inst.object for inst in depsgraph.object_instances]    
+        all_objects = [inst.object for inst in depsgraph.object_instances if inst.object is not None]
 
         for obj in all_objects:
             if obj.type == 'EMPTY' or obj.data is None:
@@ -108,7 +103,11 @@ class EXPORT_OT_entity_csv_unreal(bpy.types.Operator):
 
             entity_tags = "0"
 
-            mat = obj.matrix_world
+            # mat = obj.matrix_world
+            mat = obj.matrix_world.copy()
+            if hasattr(obj, "evaluated_get"):
+                mat = obj.evaluated_get(depsgraph).matrix_world
+            
             loc = mat.to_translation()
             rot = mat.to_euler()
             scale = mat.to_scale()
@@ -192,45 +191,7 @@ class EXPORT_PT_entity_csv_unreal_panel(bpy.types.Panel):
         layout.separator()
         layout.prop(scene, "unreal_export_path")
 
-classes = [
-    CollectionItem,
-    PurpleprintBridgePreferences,
-    EXPORT_OT_entity_csv_unreal,
-    EXPORT_OT_update_collection_list,
-    EXPORT_PT_entity_csv_unreal_panel,
-]
-
-def register_scene_props():
-    bpy.types.Scene.collection_filter = CollectionProperty(type=CollectionItem)
-    bpy.types.Scene.export_mode = EnumProperty(
-        name="Export Mode",
-        description="Choose export mode",
-        items=[
-            ('ALL', "Export All", "Export all visible objects"),
-            ('FILTERED', "Export By Collections", "Export only selected collections")
-        ],
-        default='ALL'
-    )
-    bpy.types.Scene.unreal_export_path = StringProperty(
-        name="CSV Export Path",
-        description="File path for exporting CSV",
-        subtype='FILE_PATH'
-    )
-
-def unregister_scene_props():
-    del bpy.types.Scene.unreal_export_path
-    del bpy.types.Scene.collection_filter
-    del bpy.types.Scene.export_mode
-
-def register():
-    for cls in classes:
-        bpy.utils.register_class(cls)
-    register_scene_props()
-
-def unregister():
-    for cls in reversed(classes):
-        bpy.utils.unregister_class(cls)
-    unregister_scene_props()
-
-if __name__ == "__main__":
-    register()
+# if __name__ == "__main__":
+#     import bpy
+#     from purpleprint import *
+#     register()
